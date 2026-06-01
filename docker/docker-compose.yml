@@ -1,0 +1,53 @@
+services:
+  oracle:
+    image: gvenzl/oracle-free:23-slim
+    container_name: fittrack-oracle
+    environment:
+      ORACLE_RANDOM_PASSWORD: "true"
+      APP_USER: fittrack_app
+      APP_USER_PASSWORD: fittrack_dev_password_change_me
+    ports:
+      - "1521:1521"
+    volumes:
+      - oracle-data:/opt/oracle/oradata
+      - ./oracle-init:/container-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 90s
+
+  redis:
+    image: redis:7-alpine
+    container_name: fittrack-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: fittrack-api
+    env_file: ../.env
+    environment:
+      ORACLE_HOST: oracle
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "8000:8000"
+    depends_on:
+      oracle:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  oracle-data:
+  redis-data:

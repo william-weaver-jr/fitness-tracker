@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FitTrack — Dev Test Harness</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; font-size: 14px; display: flex; height: 100vh; overflow: hidden; background: #f8f9fa; }
+
+  /* ── Sidebar ── */
+  #sidebar { width: 200px; background: #1a1a2e; color: #e0e0e0; display: flex; flex-direction: column; flex-shrink: 0; }
+  #sidebar h1 { padding: 16px 12px; font-size: 15px; font-weight: 700; color: #fff; border-bottom: 1px solid #333; }
+  #sidebar nav a { display: block; padding: 9px 16px; color: #b0b0cc; text-decoration: none; transition: background .15s; cursor: pointer; }
+  #sidebar nav a:hover, #sidebar nav a.active { background: #16213e; color: #fff; border-left: 3px solid #6c63ff; }
+  #sidebar .divider { border-top: 1px solid #333; margin: 8px 0; }
+  .db-btn { margin: 8px; padding: 7px 10px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; width: calc(100% - 16px); }
+  #btn-seed { background: #28a745; color: #fff; }
+  #btn-reset { background: #dc3545; color: #fff; }
+
+  /* ── Main ── */
+  #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  #toolbar { padding: 10px 16px; background: #fff; border-bottom: 1px solid #dee2e6; display: flex; align-items: center; gap: 10px; }
+  #toolbar h2 { font-size: 16px; font-weight: 600; flex: 1; }
+  #toolbar input { padding: 5px 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 13px; width: 240px; }
+  .btn { padding: 6px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
+  .btn-primary { background: #6c63ff; color: #fff; }
+  .btn-secondary { background: #6c757d; color: #fff; }
+  .btn-danger { background: #dc3545; color: #fff; }
+
+  /* ── Content area ── */
+  #content { flex: 1; display: flex; overflow: hidden; }
+  #table-pane { flex: 1; overflow: auto; padding: 16px; }
+  #detail-pane { width: 380px; background: #fff; border-left: 1px solid #dee2e6; display: flex; flex-direction: column; }
+  #detail-pane h3 { padding: 12px 14px; font-size: 14px; font-weight: 600; border-bottom: 1px solid #dee2e6; }
+  #detail-body { flex: 1; overflow: auto; padding: 12px 14px; font-family: monospace; font-size: 12px; white-space: pre-wrap; color: #333; }
+  #detail-actions { padding: 10px 14px; border-top: 1px solid #dee2e6; display: flex; gap: 8px; }
+
+  /* ── Table ── */
+  table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  th { padding: 10px 14px; text-align: left; background: #f1f3f5; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #555; }
+  td { padding: 9px 14px; border-top: 1px solid #f0f0f0; vertical-align: top; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  tr:hover td { background: #f8f9ff; cursor: pointer; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge-active { background: #d4edda; color: #155724; }
+  .badge-pending { background: #fff3cd; color: #856404; }
+  .badge-suspended { background: #f8d7da; color: #721c24; }
+  .badge-open { background: #cfe2ff; color: #084298; }
+  .badge-completed { background: #d1e7dd; color: #0f5132; }
+
+  /* ── Pagination ── */
+  #pagination { padding: 12px 16px; display: flex; align-items: center; gap: 8px; background: #fff; border-top: 1px solid #dee2e6; }
+  #pagination span { font-size: 13px; color: #666; flex: 1; }
+  #pagination button { padding: 5px 12px; border: 1px solid #dee2e6; border-radius: 6px; background: #fff; cursor: pointer; font-size: 13px; }
+  #pagination button:disabled { opacity: .4; cursor: default; }
+
+  /* ── Log pane ── */
+  #log-pane { height: 170px; background: #1a1a2e; color: #a8d8a8; font-family: monospace; font-size: 12px; overflow-y: auto; padding: 8px 12px; border-top: 2px solid #333; }
+  #log-pane .log-entry { margin-bottom: 3px; }
+  #log-pane .err { color: #f28b82; }
+  #log-pane .ok  { color: #a8d8a8; }
+  #log-pane .inf { color: #7ec8e3; }
+
+  /* ── Form modal ── */
+  #modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 100; }
+  #modal { background: #fff; border-radius: 10px; padding: 24px; max-width: 520px; width: 90%; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); }
+  #modal h3 { margin-bottom: 16px; font-size: 16px; }
+  #modal label { display: block; margin-bottom: 12px; font-size: 13px; font-weight: 600; }
+  #modal input, #modal select, #modal textarea { width: 100%; padding: 7px 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 13px; margin-top: 4px; }
+  #modal textarea { height: 80px; resize: vertical; }
+  #modal .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+
+  /* ── Reports ── */
+  #report-section { padding: 16px; display: none; }
+  .report-card { background: #fff; border-radius: 8px; padding: 16px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .report-card h4 { font-size: 14px; margin-bottom: 10px; color: #333; }
+  .bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 12px; }
+  .bar-label { width: 140px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar-track { flex: 1; height: 10px; background: #e9ecef; border-radius: 5px; }
+  .bar-fill { height: 100%; background: #6c63ff; border-radius: 5px; }
+  .bar-val { width: 40px; text-align: right; }
+</style>
+</head>
+<body>
+
+<nav id="sidebar">
+  <h1>🏃 FitTrack Dev</h1>
+  <nav id="entity-nav">
+    <a data-entity="users" class="active">Users</a>
+    <a data-entity="profiles">Profiles</a>
+    <a data-entity="connections">Connections</a>
+    <a data-entity="activities">Activities</a>
+    <a data-entity="point-transactions">Transactions</a>
+    <a data-entity="drawings">Drawings</a>
+    <a data-entity="tickets">Tickets</a>
+    <a data-entity="prizes">Prizes</a>
+    <a data-entity="fulfillments">Fulfillments</a>
+    <a data-entity="sponsors">Sponsors</a>
+    <div class="divider"></div>
+    <a data-entity="reports">📊 Reports</a>
+  </nav>
+  <div class="divider"></div>
+  <button class="db-btn" id="btn-seed">Seed DB</button>
+  <button class="db-btn" id="btn-reset">Reset DB</button>
+</nav>
+
+<div id="main">
+  <div id="toolbar">
+    <h2 id="entity-title">Users</h2>
+    <input id="search-input" type="text" placeholder="Search…" />
+    <button class="btn btn-primary" id="btn-create">+ Create</button>
+    <button class="btn btn-secondary" id="btn-refresh">↻ Refresh</button>
+  </div>
+
+  <div id="content">
+    <div id="table-pane">
+      <table id="data-table">
+        <thead id="table-head"></thead>
+        <tbody id="table-body"></tbody>
+      </table>
+      <div id="report-section"></div>
+    </div>
+    <div id="detail-pane">
+      <h3>Detail</h3>
+      <div id="detail-body">Select a row to view details.</div>
+      <div id="detail-actions">
+        <button class="btn btn-danger" id="btn-delete" style="display:none">Delete</button>
+        <button class="btn btn-primary" id="btn-edit" style="display:none">Edit</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="pagination">
+    <span id="page-info">No data</span>
+    <button id="btn-prev" disabled>‹ Prev</button>
+    <button id="btn-next" disabled>Next ›</button>
+  </div>
+
+  <div id="log-pane"></div>
+</div>
+
+<!-- Modal -->
+<div id="modal-overlay">
+  <div id="modal">
+    <h3 id="modal-title">Create</h3>
+    <div id="modal-fields"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="modal-cancel">Cancel</button>
+      <button class="btn btn-primary" id="modal-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const BASE = '';
+let currentEntity = 'users';
+let currentPage = 1;
+const PAGE_SIZE = 20;
+let selectedId = null;
+let totalItems = 0;
+
+// ── Entity config ──────────────────────────────────────────────────────────────
+const ENTITIES = {
+  users: {
+    path: '/v1/users',
+    cols: ['email', 'status', 'role', 'pointBalance'],
+    idKey: '_id',
+    createFields: [
+      { name: 'email', label: 'Email', type: 'email' },
+      { name: 'password', label: 'Password', type: 'password' },
+    ],
+  },
+  profiles: { path: '/v1/users', cols: ['displayName', 'tierCode', 'biologicalSex', 'ageBracket', 'fitnessLevel'], idKey: '_id', subPath: '/profile' },
+  connections: { path: '/v1/users', cols: ['provider', 'isPrimary', 'syncStatus', 'lastSyncAt'], idKey: '_id' },
+  activities: { path: '/v1/activities', cols: ['activityType', 'startTime', 'durationMinutes', 'intensity', 'pointsEarned'], idKey: '_id' },
+  'point-transactions': { path: '/v1/point-transactions', cols: ['transactionType', 'amount', 'balanceAfter', 'createdAt'], idKey: '_id' },
+  drawings: {
+    path: '/v1/drawings',
+    cols: ['name', 'drawingType', 'status', 'ticketCostPoints', 'totalTickets'],
+    idKey: '_id',
+    createFields: [
+      { name: 'name', label: 'Name', type: 'text' },
+      { name: 'drawingType', label: 'Type', type: 'select', options: ['daily','weekly','monthly','annual'] },
+      { name: 'ticketCostPoints', label: 'Ticket Cost (pts)', type: 'number' },
+      { name: 'drawingTime', label: 'Drawing Time (ISO)', type: 'text' },
+      { name: 'ticketSalesClose', label: 'Sales Close (ISO)', type: 'text' },
+    ],
+  },
+  tickets: { path: '/v1/tickets', cols: ['drawingId', 'userId', 'ticketNumber', 'isWinner', 'createdAt'], idKey: '_id' },
+  prizes: { path: '/v1/prizes', cols: ['rank', 'name', 'valueUsd', 'fulfillmentType', 'quantity'], idKey: '_id' },
+  fulfillments: { path: '/v1/fulfillments', cols: ['status', 'prizeId', 'userId', 'notifiedAt', 'shippedAt'], idKey: '_id' },
+  sponsors: {
+    path: '/v1/sponsors',
+    cols: ['name', 'contactEmail', 'websiteUrl', 'status'],
+    idKey: '_id',
+    createFields: [
+      { name: 'name', label: 'Name', type: 'text' },
+      { name: 'contactEmail', label: 'Contact Email', type: 'email' },
+      { name: 'websiteUrl', label: 'Website URL', type: 'url' },
+    ],
+  },
+  reports: { isReport: true },
+};
+
+// ── Logging ───────────────────────────────────────────────────────────────────
+function log(msg, level = 'inf') {
+  const el = document.getElementById('log-pane');
+  const ts = new Date().toISOString().substr(11, 8);
+  el.insertAdjacentHTML('afterbegin', `<div class="log-entry ${level}">[${ts}] ${msg}</div>`);
+}
+
+// ── API helpers ───────────────────────────────────────────────────────────────
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  log(`${method} ${path}`, 'inf');
+  const resp = await fetch(BASE + path, opts);
+  const text = await resp.text();
+  let data;
+  try { data = JSON.parse(text); } catch { data = text; }
+  const cls = resp.ok ? 'ok' : 'err';
+  log(`→ ${resp.status} ${JSON.stringify(data).substr(0, 120)}`, cls);
+  return { ok: resp.ok, status: resp.status, data };
+}
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+document.querySelectorAll('#entity-nav a').forEach(a => {
+  a.addEventListener('click', () => {
+    document.querySelectorAll('#entity-nav a').forEach(x => x.classList.remove('active'));
+    a.classList.add('active');
+    currentEntity = a.dataset.entity;
+    currentPage = 1;
+    selectedId = null;
+    document.getElementById('entity-title').textContent = currentEntity.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    document.getElementById('detail-body').textContent = 'Select a row to view details.';
+    document.getElementById('btn-delete').style.display = 'none';
+    document.getElementById('btn-edit').style.display = 'none';
+    if (ENTITIES[currentEntity]?.isReport) loadReports();
+    else { document.getElementById('report-section').style.display = 'none'; loadData(); }
+  });
+});
+
+// ── Load data ─────────────────────────────────────────────────────────────────
+async function loadData() {
+  const cfg = ENTITIES[currentEntity];
+  if (!cfg || cfg.isReport) return;
+  const path = `${cfg.path}?page=${currentPage}&limit=${PAGE_SIZE}`;
+  const { ok, data } = await api('GET', path);
+  if (!ok) { document.getElementById('table-body').innerHTML = '<tr><td colspan="10">Error loading data</td></tr>'; return; }
+
+  const items = data.items || (Array.isArray(data) ? data : []);
+  totalItems = data.total || items.length;
+  renderTable(cfg.cols, items, cfg.idKey);
+  updatePagination();
+}
+
+function renderTable(cols, items, idKey) {
+  const head = document.getElementById('table-head');
+  const body = document.getElementById('table-body');
+  head.innerHTML = `<tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr>`;
+  body.innerHTML = items.map(row => {
+    const id = row[idKey];
+    const cells = cols.map(c => {
+      const val = row[c];
+      if (c === 'status') return `<td><span class="badge badge-${val}">${val ?? ''}</span></td>`;
+      return `<td title="${val ?? ''}">${val ?? '—'}</td>`;
+    }).join('');
+    return `<tr data-id="${id}">${cells}</tr>`;
+  }).join('') || '<tr><td colspan="10" style="text-align:center;color:#999;padding:32px">No records found</td></tr>';
+
+  body.querySelectorAll('tr[data-id]').forEach(row => {
+    row.addEventListener('click', () => selectRow(row.dataset.id, items.find(r => r[idKey] === row.dataset.id)));
+  });
+}
+
+function selectRow(id, data) {
+  selectedId = id;
+  document.getElementById('detail-body').textContent = JSON.stringify(data, null, 2);
+  document.getElementById('btn-delete').style.display = '';
+  document.getElementById('btn-edit').style.display = '';
+}
+
+function updatePagination() {
+  const pages = Math.ceil(totalItems / PAGE_SIZE) || 1;
+  document.getElementById('page-info').textContent = `Page ${currentPage} of ${pages} • ${totalItems} total`;
+  document.getElementById('btn-prev').disabled = currentPage <= 1;
+  document.getElementById('btn-next').disabled = currentPage >= pages;
+}
+
+document.getElementById('btn-prev').addEventListener('click', () => { if (currentPage > 1) { currentPage--; loadData(); } });
+document.getElementById('btn-next').addEventListener('click', () => { currentPage++; loadData(); });
+document.getElementById('btn-refresh').addEventListener('click', loadData);
+
+// ── Delete ────────────────────────────────────────────────────────────────────
+document.getElementById('btn-delete').addEventListener('click', async () => {
+  if (!selectedId || !confirm('Delete this record?')) return;
+  const cfg = ENTITIES[currentEntity];
+  const { ok } = await api('DELETE', `${cfg.path}/${selectedId}`);
+  if (ok) { selectedId = null; loadData(); }
+});
+
+// ── Create / Edit modal ───────────────────────────────────────────────────────
+document.getElementById('btn-create').addEventListener('click', () => {
+  const cfg = ENTITIES[currentEntity];
+  if (!cfg?.createFields) { log('Create not supported for this entity', 'err'); return; }
+  document.getElementById('modal-title').textContent = `Create ${currentEntity}`;
+  const fields = cfg.createFields.map(f => {
+    if (f.type === 'select') return `<label>${f.label}<select name="${f.name}">${f.options.map(o => `<option>${o}</option>`).join('')}</select></label>`;
+    return `<label>${f.label}<input type="${f.type}" name="${f.name}" /></label>`;
+  }).join('');
+  document.getElementById('modal-fields').innerHTML = fields;
+  document.getElementById('modal-overlay').style.display = 'block';
+});
+
+document.getElementById('modal-cancel').addEventListener('click', () => { document.getElementById('modal-overlay').style.display = 'none'; });
+
+document.getElementById('modal-save').addEventListener('click', async () => {
+  const cfg = ENTITIES[currentEntity];
+  const form = document.getElementById('modal-fields');
+  const body = {};
+  form.querySelectorAll('input, select, textarea').forEach(el => { body[el.name] = el.value; });
+  const { ok } = await api('POST', cfg.path, body);
+  if (ok) { document.getElementById('modal-overlay').style.display = 'none'; loadData(); }
+});
+
+// ── DB controls ───────────────────────────────────────────────────────────────
+document.getElementById('btn-seed').addEventListener('click', async () => {
+  if (!confirm('Seed the database? This will add synthetic data.')) return;
+  const { ok, data } = await api('POST', '/dev/seed');
+  log(ok ? '✓ DB seeded' : `✗ ${data.detail}`, ok ? 'ok' : 'err');
+});
+
+document.getElementById('btn-reset').addEventListener('click', async () => {
+  if (!confirm('RESET the database? All data will be deleted and re-seeded.')) return;
+  const { ok, data } = await api('POST', '/dev/reset');
+  log(ok ? '✓ DB reset' : `✗ ${data.detail}`, ok ? 'ok' : 'err');
+  if (ok) loadData();
+});
+
+// ── Reports ───────────────────────────────────────────────────────────────────
+async function loadReports() {
+  document.getElementById('table-pane').querySelector('table').style.display = 'none';
+  const rs = document.getElementById('report-section');
+  rs.style.display = 'block';
+  rs.innerHTML = '<p style="color:#999;padding:16px">Loading reports…</p>';
+
+  const [usersRes, drawingsRes] = await Promise.all([
+    api('GET', '/v1/users?limit=100'),
+    api('GET', '/v1/drawings?limit=100'),
+  ]);
+
+  const users = usersRes.data?.items || [];
+  const drawings = drawingsRes.data?.items || [];
+
+  const byTier = {};
+  users.forEach(u => { const t = u.tierCode || 'unknown'; byTier[t] = (byTier[t] || 0) + 1; });
+  const byStatus = {};
+  drawings.forEach(d => { byStatus[d.status] = (byStatus[d.status] || 0) + 1; });
+
+  const maxTier = Math.max(1, ...Object.values(byTier));
+  const maxStatus = Math.max(1, ...Object.values(byStatus));
+
+  const tierBars = Object.entries(byTier).sort((a,b) => b[1]-a[1]).slice(0,15)
+    .map(([t,c]) => `<div class="bar-row"><span class="bar-label" title="${t}">${t}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.round(c/maxTier*100)}%"></div></div><span class="bar-val">${c}</span></div>`).join('');
+
+  const statusBars = Object.entries(byStatus)
+    .map(([s,c]) => `<div class="bar-row"><span class="bar-label">${s}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.round(c/maxStatus*100)}%"></div></div><span class="bar-val">${c}</span></div>`).join('');
+
+  rs.innerHTML = `
+    <div class="report-card"><h4>Users by Tier (top 15)</h4>${tierBars || '<p style="color:#999">No data</p>'}</div>
+    <div class="report-card"><h4>Drawings by Status</h4>${statusBars || '<p style="color:#999">No data</p>'}</div>
+    <div class="report-card"><h4>Summary</h4>
+      <p style="margin-bottom:6px">Total users: <strong>${usersRes.data?.total || 0}</strong></p>
+      <p>Total drawings: <strong>${drawingsRes.data?.total || 0}</strong></p>
+    </div>
+  `;
+  document.getElementById('table-pane').querySelector('table').style.display = '';
+}
+
+// ── Search ────────────────────────────────────────────────────────────────────
+let searchTimer;
+document.getElementById('search-input').addEventListener('input', e => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => { currentPage = 1; loadData(); }, 300);
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+loadData();
+log('Dev test harness loaded', 'ok');
+</script>
+</body>
+</html>
