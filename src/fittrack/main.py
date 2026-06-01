@@ -28,6 +28,7 @@ from fittrack.api.v1.routes.sponsors import router as sponsors_router
 from fittrack.api.v1.routes.tickets import router as tickets_router
 from fittrack.api.v1.routes.users import router as users_router
 from fittrack.config import get_settings
+from fittrack.utils.logging import configure_logging
 
 
 @asynccontextmanager
@@ -47,6 +48,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 def create_app() -> FastAPI:
     settings = get_settings()
+    configure_logging(settings.log_level, dev=settings.is_development)
 
     app = FastAPI(
         title="FitTrack API",
