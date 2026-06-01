@@ -23,7 +23,7 @@ async def list_transactions(
     if user_id:
         params.append(user_id.replace("-", "").upper())
     async with pool.acquire() as conn:
-        cursor = await conn.cursor()
+        cursor = conn.cursor()
         count_params = params[2:] if user_id else []
         await cursor.execute(f"SELECT COUNT(*) FROM point_transactions {where}", count_params)
         row = await cursor.fetchone()
@@ -55,7 +55,7 @@ async def list_transactions(
 async def get_transaction(transaction_id: str) -> dict[str, Any] | None:
     pool = _pool()
     async with pool.acquire() as conn:
-        cursor = await conn.cursor()
+        cursor = conn.cursor()
         await cursor.execute(
             """
             SELECT JSON_OBJECT(

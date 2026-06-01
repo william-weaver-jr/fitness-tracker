@@ -23,7 +23,7 @@ async def list_activities(
     if user_id:
         params.append(user_id.replace("-", "").upper())
     async with pool.acquire() as conn:
-        cursor = await conn.cursor()
+        cursor = conn.cursor()
         count_sql = f"SELECT COUNT(*) FROM activities {where}"
         await cursor.execute(count_sql, params[2:] if user_id else [])
         row = await cursor.fetchone()
@@ -56,7 +56,7 @@ async def list_activities(
 async def get_activity(activity_id: str) -> dict[str, Any] | None:
     pool = _pool()
     async with pool.acquire() as conn:
-        cursor = await conn.cursor()
+        cursor = conn.cursor()
         await cursor.execute(
             """
             SELECT JSON_OBJECT(

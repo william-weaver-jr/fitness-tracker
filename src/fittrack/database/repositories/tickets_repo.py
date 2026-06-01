@@ -30,7 +30,7 @@ async def list_tickets(
     where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
 
     async with pool.acquire() as conn:
-        cursor = await conn.cursor()
+        cursor = conn.cursor()
         await cursor.execute(f"SELECT COUNT(*) FROM tickets {where}", params[2:])
         row = await cursor.fetchone()
         total: int = row[0] if row else 0
@@ -59,7 +59,7 @@ async def list_tickets(
 async def get_ticket(ticket_id: str) -> dict[str, Any] | None:
     pool = _pool()
     async with pool.acquire() as conn:
-        cursor = await conn.cursor()
+        cursor = conn.cursor()
         await cursor.execute(
             """
             SELECT JSON_OBJECT(

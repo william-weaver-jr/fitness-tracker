@@ -32,7 +32,7 @@ _SELECT_SPONSOR = """
 async def list_sponsors(*, offset: int = 0, limit: int = 20) -> tuple[list[dict[str, Any]], int]:
     pool = _pool()
     async with pool.acquire() as conn:
-        cursor = await conn.cursor()
+        cursor = conn.cursor()
         await cursor.execute("SELECT COUNT(*) FROM sponsors")
         row = await cursor.fetchone()
         total: int = row[0] if row else 0
@@ -49,7 +49,7 @@ async def list_sponsors(*, offset: int = 0, limit: int = 20) -> tuple[list[dict[
 async def get_sponsor(sponsor_id: str) -> dict[str, Any] | None:
     pool = _pool()
     async with pool.acquire() as conn:
-        cursor = await conn.cursor()
+        cursor = conn.cursor()
         await cursor.execute(
             _SELECT_SPONSOR + " WHERE RAWTOHEX(sponsor_id) = :1",
             [sponsor_id.replace("-", "").upper()],
@@ -65,7 +65,7 @@ async def get_sponsor(sponsor_id: str) -> dict[str, Any] | None:
 async def create_sponsor(data: dict[str, Any]) -> dict[str, Any]:
     pool = _pool()
     async with pool.acquire() as conn:
-        cursor = await conn.cursor()
+        cursor = conn.cursor()
         await cursor.execute(
             """
             INSERT INTO sponsors (name, contact_name, contact_email, contact_phone,
@@ -94,7 +94,7 @@ async def create_sponsor(data: dict[str, Any]) -> dict[str, Any]:
 async def update_sponsor(sponsor_id: str, data: dict[str, Any]) -> dict[str, Any] | None:
     pool = _pool()
     async with pool.acquire() as conn:
-        cursor = await conn.cursor()
+        cursor = conn.cursor()
         set_clauses = ", ".join(
             f"{col} = :{i + 2}"
             for i, col in enumerate(
@@ -123,7 +123,7 @@ async def update_sponsor(sponsor_id: str, data: dict[str, Any]) -> dict[str, Any
 async def delete_sponsor(sponsor_id: str) -> bool:
     pool = _pool()
     async with pool.acquire() as conn:
-        cursor = await conn.cursor()
+        cursor = conn.cursor()
         await cursor.execute(
             "DELETE FROM sponsors WHERE RAWTOHEX(sponsor_id) = :1",
             [sponsor_id.replace("-", "").upper()],

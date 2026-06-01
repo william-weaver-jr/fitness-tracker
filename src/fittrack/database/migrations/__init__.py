@@ -65,7 +65,7 @@ async def get_applied_versions(conn: object) -> set[int]:
 
     c = conn  # type: ignore[assignment]
     try:
-        cursor = await c.cursor()
+        cursor = c.cursor()
         await cursor.execute("SELECT version FROM schema_migrations")
         rows: list[Any] = await cursor.fetchall()
         return {row[0] for row in rows}
@@ -75,7 +75,7 @@ async def get_applied_versions(conn: object) -> set[int]:
 
 async def ensure_migrations_table(conn: object) -> None:
     c = conn  # type: ignore[assignment]
-    cursor = await c.cursor()
+    cursor = c.cursor()
     await cursor.execute(
         """
         DECLARE
@@ -107,7 +107,7 @@ async def apply_migrations(conn: object) -> int:
     c = conn  # type: ignore[assignment]
     for migration in pending:
         sql = migration.path.read_text(encoding="utf-8")
-        cursor = await c.cursor()
+        cursor = c.cursor()
         # Oracle scripts may contain multiple statements separated by "/"
         for statement in _split_statements(sql):
             if statement.strip():

@@ -41,7 +41,7 @@ async def list_drawings(
     if status:
         params.append(status)
     async with pool.acquire() as conn:
-        cursor = await conn.cursor()
+        cursor = conn.cursor()
         await cursor.execute(f"SELECT COUNT(*) FROM drawings {where}", params[2:] if status else [])
         row = await cursor.fetchone()
         total: int = row[0] if row else 0
@@ -59,7 +59,7 @@ async def list_drawings(
 async def get_drawing(drawing_id: str) -> dict[str, Any] | None:
     pool = _pool()
     async with pool.acquire() as conn:
-        cursor = await conn.cursor()
+        cursor = conn.cursor()
         await cursor.execute(
             _SELECT_DRAWING + " WHERE RAWTOHEX(drawing_id) = :1",
             [drawing_id.replace("-", "").upper()],
@@ -75,7 +75,7 @@ async def get_drawing(drawing_id: str) -> dict[str, Any] | None:
 async def create_drawing(data: dict[str, Any]) -> dict[str, Any]:
     pool = _pool()
     async with pool.acquire() as conn:
-        cursor = await conn.cursor()
+        cursor = conn.cursor()
         out_id = cursor.var(str)
         await cursor.execute(
             """
@@ -107,7 +107,7 @@ async def create_drawing(data: dict[str, Any]) -> dict[str, Any]:
 async def update_drawing_status(drawing_id: str, status: str) -> dict[str, Any] | None:
     pool = _pool()
     async with pool.acquire() as conn:
-        cursor = await conn.cursor()
+        cursor = conn.cursor()
         await cursor.execute(
             "UPDATE drawings SET status = :1, updated_at = SYSTIMESTAMP"
             " WHERE RAWTOHEX(drawing_id) = :2",

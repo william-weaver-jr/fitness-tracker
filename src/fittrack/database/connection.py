@@ -22,7 +22,7 @@ async def init_pool(settings: Settings) -> None:
     except ImportError as exc:
         raise ImportError("python-oracledb is not installed") from exc
 
-    _pool = await oracledb.create_pool_async(
+    _pool = oracledb.create_pool_async(
         user=settings.oracle_user,
         password=settings.oracle_password,
         dsn=settings.oracle_dsn,

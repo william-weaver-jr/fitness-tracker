@@ -75,7 +75,6 @@ SELECT JSON {
         }
         FROM prizes p WITH INSERT UPDATE DELETE
         WHERE p.drawing_id = d.drawing_id
-        ORDER BY p.rank
     ]
 }
 FROM drawings d WITH INSERT UPDATE DELETE

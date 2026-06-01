@@ -23,7 +23,7 @@ async def list_fulfillments(
     if user_id:
         params.append(user_id.replace("-", "").upper())
     async with pool.acquire() as conn:
-        cursor = await conn.cursor()
+        cursor = conn.cursor()
         count_params = params[2:] if user_id else []
         await cursor.execute(f"SELECT COUNT(*) FROM prize_fulfillments {where}", count_params)
         row = await cursor.fetchone()
@@ -60,7 +60,7 @@ async def list_fulfillments(
 async def get_fulfillment(fulfillment_id: str) -> dict[str, Any] | None:
     pool = _pool()
     async with pool.acquire() as conn:
-        cursor = await conn.cursor()
+        cursor = conn.cursor()
         await cursor.execute(
             """
             SELECT JSON_OBJECT(
@@ -94,7 +94,7 @@ async def get_fulfillment(fulfillment_id: str) -> dict[str, Any] | None:
 async def update_fulfillment_status(fulfillment_id: str, status: str) -> dict[str, Any] | None:
     pool = _pool()
     async with pool.acquire() as conn:
-        cursor = await conn.cursor()
+        cursor = conn.cursor()
         await cursor.execute(
             "UPDATE prize_fulfillments SET status = :1, updated_at = SYSTIMESTAMP"
             " WHERE RAWTOHEX(fulfillment_id) = :2",

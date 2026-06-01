@@ -29,7 +29,7 @@ _DROP_TABLES = [
 async def drop_tables(conn: object) -> None:
     for table in _DROP_TABLES:
         try:
-            cursor = await conn.cursor()  # type: ignore[union-attr]
+            cursor = conn.cursor()  # type: ignore[union-attr]
             await cursor.execute(f"DROP TABLE {table} CASCADE CONSTRAINTS")
             await conn.commit()  # type: ignore[union-attr]
             print(f"  Dropped {table}")
@@ -40,7 +40,7 @@ async def drop_tables(conn: object) -> None:
 async def drop_views(conn: object) -> None:
     for view in ["user_profile_dv", "drawing_dv", "activity_dv"]:
         try:
-            cursor = await conn.cursor()  # type: ignore[union-attr]
+            cursor = conn.cursor()  # type: ignore[union-attr]
             await cursor.execute(f"DROP VIEW {view}")
             await conn.commit()  # type: ignore[union-attr]
             print(f"  Dropped view {view}")

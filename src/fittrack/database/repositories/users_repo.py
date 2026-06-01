@@ -19,7 +19,7 @@ async def list_users(
     """Return (items, total_count) of users."""
     pool = _pool()
     async with pool.acquire() as conn:
-        cursor = await conn.cursor()
+        cursor = conn.cursor()
         await cursor.execute("SELECT COUNT(*) FROM users")
         row = await cursor.fetchone()
         total: int = row[0] if row else 0
@@ -52,7 +52,7 @@ async def list_users(
 async def get_user(user_id: str) -> dict[str, Any] | None:
     pool = _pool()
     async with pool.acquire() as conn:
-        cursor = await conn.cursor()
+        cursor = conn.cursor()
         await cursor.execute(
             """
             SELECT JSON_OBJECT(
@@ -83,7 +83,7 @@ async def get_user(user_id: str) -> dict[str, Any] | None:
 async def delete_user(user_id: str) -> bool:
     pool = _pool()
     async with pool.acquire() as conn:
-        cursor = await conn.cursor()
+        cursor = conn.cursor()
         await cursor.execute(
             "DELETE FROM users WHERE RAWTOHEX(user_id) = :1",
             [user_id.replace("-", "").upper()],

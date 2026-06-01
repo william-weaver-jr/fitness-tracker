@@ -16,7 +16,7 @@ async def list_prizes(
 ) -> tuple[list[dict[str, Any]], int]:
     pool = _pool()
     async with pool.acquire() as conn:
-        cursor = await conn.cursor()
+        cursor = conn.cursor()
         await cursor.execute(
             "SELECT COUNT(*) FROM prizes WHERE RAWTOHEX(drawing_id) = :1",
             [drawing_id.replace("-", "").upper()],
@@ -54,7 +54,7 @@ async def list_prizes(
 async def get_prize(prize_id: str) -> dict[str, Any] | None:
     pool = _pool()
     async with pool.acquire() as conn:
-        cursor = await conn.cursor()
+        cursor = conn.cursor()
         await cursor.execute(
             """
             SELECT JSON_OBJECT(

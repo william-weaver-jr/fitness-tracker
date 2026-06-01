@@ -14,7 +14,7 @@ def _pool() -> Any:
 async def get_profile(user_id: str) -> dict[str, Any] | None:
     pool = _pool()
     async with pool.acquire() as conn:
-        cursor = await conn.cursor()
+        cursor = conn.cursor()
         await cursor.execute(
             """
             SELECT JSON_OBJECT(
@@ -47,7 +47,7 @@ async def get_profile(user_id: str) -> dict[str, Any] | None:
 async def upsert_profile(user_id: str, data: dict[str, Any]) -> dict[str, Any]:
     pool = _pool()
     async with pool.acquire() as conn:
-        cursor = await conn.cursor()
+        cursor = conn.cursor()
         await cursor.execute(
             """
             MERGE INTO profiles p

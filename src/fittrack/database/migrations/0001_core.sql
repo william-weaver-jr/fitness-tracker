@@ -25,8 +25,6 @@ CREATE TABLE users (
 )
 /
 
-CREATE INDEX idx_users_email  ON users(email)
-/
 CREATE INDEX idx_users_status ON users(status)
 /
 
@@ -55,8 +53,6 @@ CREATE TABLE profiles (
 /
 
 CREATE INDEX idx_profiles_tier ON profiles(tier_code)
-/
-CREATE INDEX idx_profiles_user ON profiles(user_id)
 /
 
 -- ─── Tracker Connections ──────────────────────────────────────────────────────

@@ -14,7 +14,7 @@ def _pool() -> Any:
 async def list_connections(user_id: str) -> list[dict[str, Any]]:
     pool = _pool()
     async with pool.acquire() as conn:
-        cursor = await conn.cursor()
+        cursor = conn.cursor()
         await cursor.execute(
             """
             SELECT JSON_OBJECT(
@@ -42,7 +42,7 @@ async def list_connections(user_id: str) -> list[dict[str, Any]]:
 async def get_connection(connection_id: str) -> dict[str, Any] | None:
     pool = _pool()
     async with pool.acquire() as conn:
-        cursor = await conn.cursor()
+        cursor = conn.cursor()
         await cursor.execute(
             """
             SELECT JSON_OBJECT(
@@ -71,7 +71,7 @@ async def get_connection(connection_id: str) -> dict[str, Any] | None:
 async def delete_connection(connection_id: str) -> bool:
     pool = _pool()
     async with pool.acquire() as conn:
-        cursor = await conn.cursor()
+        cursor = conn.cursor()
         await cursor.execute(
             "DELETE FROM tracker_connections WHERE RAWTOHEX(connection_id) = :1",
             [connection_id.replace("-", "").upper()],

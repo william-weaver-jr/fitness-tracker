@@ -45,7 +45,7 @@ _conn: object = None  # type: ignore[assignment]
 
 
 async def _exec(sql: str, params: list | None = None) -> object:
-    cursor = await _conn.cursor()  # type: ignore[union-attr]
+    cursor = _conn.cursor()  # type: ignore[union-attr]
     await cursor.execute(sql, params or [])
     return cursor
 
@@ -264,16 +264,19 @@ async def seed_activities(users: list[tuple[str, str]]) -> None:
                     end = start + datetime.timedelta(minutes=duration)
                     await _exec(
                         """
-                        INSERT INTO activities (activity_id, user_id, activity_type,
-                                               start_time, end_time, duration_minutes,
-                                               intensity, points_earned, processed)
+                        INSERT INTO activities (activity_id, user_id, external_id,
+                                               activity_type, start_time, end_time,
+                                               duration_minutes, intensity, points_earned,
+                                               processed)
                         VALUES (HEXTORAW(:1), HEXTORAW(:2), :3,
-                                TO_TIMESTAMP(:4, 'YYYY-MM-DD HH24:MI:SS'),
+                                :4,
                                 TO_TIMESTAMP(:5, 'YYYY-MM-DD HH24:MI:SS'),
-                                :6, :7, :8, 1)
+                                TO_TIMESTAMP(:6, 'YYYY-MM-DD HH24:MI:SS'),
+                                :7, :8, :9, 1)
                         """,
                         [
-                            aid, user_id, atype.value,
+                            aid, user_id, aid,
+                            atype.value,
                             start.strftime("%Y-%m-%d %H:%M:%S"),
                             end.strftime("%Y-%m-%d %H:%M:%S"),
                             duration, intensity.value, points,
@@ -314,9 +317,19 @@ async def seed_fulfillments(ticket_records: list[tuple[str, str, str]]) -> None:
 
     statuses = list(FulfillmentStatus)
     sample = random.sample(ticket_records, min(8, len(ticket_records)))
+    created = 0
     for i, (tid, did, uid) in enumerate(sample):
+        # Look up a real prize that belongs to this drawing
+        cursor = _conn.cursor()  # type: ignore[union-attr]
+        await cursor.execute(
+            "SELECT RAWTOHEX(prize_id) FROM prizes WHERE RAWTOHEX(drawing_id) = :1 AND ROWNUM = 1",
+            [did],
+        )
+        row = await cursor.fetchone()
+        if row is None:
+            continue  # drawing has no prizes yet — skip
+        pid = str(row[0])
         fid = str(uuid.uuid4()).replace("-", "").upper()
-        pid = str(uuid.uuid4()).replace("-", "").upper()
         status = statuses[i % len(statuses)]
         await _exec(
             """
@@ -325,8 +338,9 @@ async def seed_fulfillments(ticket_records: list[tuple[str, str, str]]) -> None:
             """,
             [fid, tid, pid, uid, status.value],
         )
+        created += 1
     await _commit()
-    print(f"    Created {len(sample)} fulfillment records")
+    print(f"    Created {created} fulfillment records")
 
 
 async def main() -> None:
