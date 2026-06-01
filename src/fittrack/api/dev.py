@@ -5,6 +5,9 @@ Only registered when ENV=development. Returns 404 in all other environments.
 
 from __future__ import annotations
 
+import asyncio
+import importlib.util
+import sys
 from pathlib import Path
 
 from fastapi import APIRouter
@@ -16,6 +19,19 @@ router = APIRouter(prefix="/dev", tags=["dev"])
 
 _STATIC_DIR = Path(__file__).parent.parent.parent.parent / "static" / "dev"
 _TEST_PAGE = _STATIC_DIR / "test_page.html"
+_SCRIPTS_DIR = Path(__file__).parent.parent.parent.parent / "scripts"
+
+
+async def _run_script(script_name: str) -> None:
+    """Dynamically load and run a script's async main() function."""
+    script_path = _SCRIPTS_DIR / f"{script_name}.py"
+    spec = importlib.util.spec_from_file_location(script_name, script_path)
+    if spec and spec.loader:
+        mod = importlib.util.module_from_spec(spec)
+        sys.modules[script_name] = mod
+        spec.loader.exec_module(mod)  # type: ignore[union-attr]
+        if hasattr(mod, "main") and asyncio.iscoroutinefunction(mod.main):
+            await mod.main()
 
 
 @router.get("", include_in_schema=False)
@@ -29,23 +45,7 @@ async def serve_test_page() -> Response:
 @router.post("/seed", response_model=None)
 async def seed_db() -> JSONResponse:
     try:
-        import importlib.util
-        import sys
-        from pathlib import Path as _P
-
-        seed_path = _P(__file__).parent.parent.parent.parent / "scripts" / "seed_data.py"
-        spec = importlib.util.spec_from_file_location("seed_data", seed_path)
-        if spec and spec.loader:
-            mod = importlib.util.module_from_spec(spec)
-            sys.modules["seed_data"] = mod
-            spec.loader.exec_module(mod)  # type: ignore[union-attr]
-            if hasattr(mod, "main"):
-                import asyncio
-
-                if asyncio.iscoroutinefunction(mod.main):
-                    await mod.main()
-                else:
-                    mod.main()
+        await _run_script("seed_data")
         return JSONResponse({"status": "seeded"})
     except Exception as exc:
         return JSONResponse({"status": "error", "detail": str(exc)}, status_code=500)
@@ -53,4 +53,8 @@ async def seed_db() -> JSONResponse:
 
 @router.post("/reset", response_model=None)
 async def reset_db() -> JSONResponse:
-    return JSONResponse({"status": "not implemented — use `make db-reset`"}, status_code=501)
+    try:
+        await _run_script("reset_db")
+        return JSONResponse({"status": "reset"})
+    except Exception as exc:
+        return JSONResponse({"status": "error", "detail": str(exc)}, status_code=500)

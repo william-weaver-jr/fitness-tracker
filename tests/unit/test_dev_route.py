@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -47,4 +49,52 @@ class TestDevRoute:
 
     def test_dev_route_not_exposed_in_production(self, prod_client: TestClient) -> None:
         resp = prod_client.get("/dev")
+        assert resp.status_code == 404
+
+
+@pytest.mark.unit
+class TestSeedEndpoint:
+    def test_seed_returns_seeded_on_success(self, dev_client: TestClient) -> None:
+        with patch("fittrack.api.dev._run_script", new_callable=AsyncMock) as mock_run:
+            resp = dev_client.post("/dev/seed")
+        assert resp.status_code == 200
+        assert resp.json() == {"status": "seeded"}
+        mock_run.assert_awaited_once_with("seed_data")
+
+    def test_seed_returns_500_with_detail_on_failure(self, dev_client: TestClient) -> None:
+        with patch(
+            "fittrack.api.dev._run_script",
+            new_callable=AsyncMock,
+            side_effect=Exception("unique constraint violated"),
+        ):
+            resp = dev_client.post("/dev/seed")
+        assert resp.status_code == 500
+        assert "unique constraint violated" in resp.json()["detail"]
+
+    def test_seed_not_available_in_production(self, prod_client: TestClient) -> None:
+        resp = prod_client.post("/dev/seed")
+        assert resp.status_code == 404
+
+
+@pytest.mark.unit
+class TestResetEndpoint:
+    def test_reset_returns_reset_on_success(self, dev_client: TestClient) -> None:
+        with patch("fittrack.api.dev._run_script", new_callable=AsyncMock) as mock_run:
+            resp = dev_client.post("/dev/reset")
+        assert resp.status_code == 200
+        assert resp.json() == {"status": "reset"}
+        mock_run.assert_awaited_once_with("reset_db")
+
+    def test_reset_returns_500_with_detail_on_failure(self, dev_client: TestClient) -> None:
+        with patch(
+            "fittrack.api.dev._run_script",
+            new_callable=AsyncMock,
+            side_effect=RuntimeError("oracle unreachable"),
+        ):
+            resp = dev_client.post("/dev/reset")
+        assert resp.status_code == 500
+        assert "oracle unreachable" in resp.json()["detail"]
+
+    def test_reset_not_available_in_production(self, prod_client: TestClient) -> None:
+        resp = prod_client.post("/dev/reset")
         assert resp.status_code == 404
